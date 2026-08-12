@@ -1,13 +1,48 @@
 #cocotb based hardware verification script 
+import os 
+import random
+
 import cocotb 
 from cocotb.clock import Clock 
-from cocotb.triggers import FallingEdge, RisingEdge
+from cocotb.triggers import FallingEdge, ReadOnly, RisingEdge, Timer
+from delay_model import expected_out 
+
+
+
+
+#helper functions
+def read_int(sig, name): 
+    #help find fails 
+    raw = str(sig.value)
+    if "x" in raw.lower() or 'x' in raw.lower(): 
+        raise AssertionError(f"{name} is not resolvable: {raw}")
+    return int(sig.value)
+
+
+async def start_clock(dut): 
+    cocotb.start_soon(Clock(dut.clk, 10, unit = "ns").start())
+
+async def apply_reset(dut, cycles = 3): 
+    dut.reset.value = 1
+    dut.in_data.value = 0 
+    for _ in range(cycles): 
+        await RisingEdge(dut.clk)
+    await FallingEdge(dut.clk)
+    dut.reset.value = 0
+
+
+
+
+
+
+
+
 
 
 @cocotb.test()
 async def test_delay_module(dut): 
     # start 10ns clock 
-    cocotb.start_soon(Clock(dut.clk, 10, units = "ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, unit = "ns").start())
 
     #reset the circuit 
     dut.reset.value = 1 
